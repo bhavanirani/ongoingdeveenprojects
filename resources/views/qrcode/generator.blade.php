@@ -481,9 +481,11 @@
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label fw-semibold">Format</label>
                                                 <select name="format" class="form-select">
-                                                    <option value="svg" {{ old('format', 'svg') == 'svg' ? 'selected' : '' }}>SVG</option>
-                                                    <option value="png" {{ old('format') == 'png' ? 'selected' : '' }}>PNG</option>
+                                                    <option value="svg" {{ old('format', 'svg') == 'svg' ? 'selected' : '' }}>SVG (Recommended)</option>
+                                                    <option value="png" {{ old('format') == 'png' ? 'selected' : '' }}>PNG (requires imagick)</option>
+                                                    <option value="eps" {{ old('format') == 'eps' ? 'selected' : '' }}>EPS</option>
                                                 </select>
+                                                <small class="text-muted">SVG works without extra extensions</small>
                                             </div>
                                         </div>
                                     </div>
@@ -497,6 +499,9 @@
                             <div class="col-md-5 mt-4 mt-md-0">
                                 <div class="qr-preview">
                                     @if(isset($qrCode))
+                                        @if(isset($imagickAvailable) && !$imagickAvailable && request('format') === 'png')
+                                            <div class="alert alert-warning small mb-2">PNG requires the imagick extension. Generated as SVG instead.</div>
+                                        @endif
                                         <h5 class="fw-bold mb-3 text-success"><i class="fas fa-check-circle me-1"></i> QR Code Generated!</h5>
                                         <img src="{{ $qrCode }}" alt="QR Code" class="mb-3">
                                         <p class="text-muted small mb-3" style="word-break: break-all;">{{ Str::limit($url, 80) }}</p>

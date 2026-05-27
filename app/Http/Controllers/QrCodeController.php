@@ -18,7 +18,7 @@ class QrCodeController extends Controller
             'url_type' => 'required|string',
             'size' => 'required|integer|min:100|max:500',
             'color' => 'required|string',
-            'format' => 'required|in:svg,png',
+            'format' => 'required|in:svg,png,eps',
         ]);
 
         $urlType = $request->input('url_type');
@@ -34,22 +34,30 @@ class QrCodeController extends Controller
 
         $rgb = $this->hexToRgb($color);
 
-        $qrCode = QrCode::format($format)
+        $useFormat = $format;
+        if ($format === 'png' && !extension_loaded('imagick')) {
+            $useFormat = 'svg';
+        }
+
+        $qrCode = QrCode::format($useFormat)
             ->size($size)
             ->color($rgb['r'], $rgb['g'], $rgb['b'])
             ->errorCorrection('H')
             ->generate($url);
 
-        if ($format === 'svg') {
+        if ($useFormat === 'svg') {
             $qrCodeData = 'data:image/svg+xml;base64,' . base64_encode($qrCode);
         } else {
             $qrCodeData = 'data:image/png;base64,' . base64_encode($qrCode);
         }
 
+        $imagickAvailable = extension_loaded('imagick');
+
         return view('qrcode.generator', [
             'qrCode' => $qrCodeData,
             'url' => $url,
-            'format' => $format,
+            'format' => $useFormat,
+            'imagickAvailable' => $imagickAvailable,
         ]);
     }
 
@@ -59,13 +67,17 @@ class QrCodeController extends Controller
             'url' => 'required|string',
             'size' => 'required|integer|min:100|max:500',
             'color' => 'required|string',
-            'format' => 'required|in:svg,png',
+            'format' => 'required|in:svg,png,eps',
         ]);
 
         $url = $request->input('url');
         $size = $request->input('size', 200);
         $color = $request->input('color', '#000000');
         $format = $request->input('format', 'svg');
+
+        if ($format === 'png' && !extension_loaded('imagick')) {
+            $format = 'svg';
+        }
 
         $rgb = $this->hexToRgb($color);
 
@@ -76,7 +88,8 @@ class QrCodeController extends Controller
             ->generate($url);
 
         $filename = 'qrcode_' . time() . '.' . $format;
-        $contentType = $format === 'svg' ? 'image/svg+xml' : 'image/png';
+        $contentTypes = ['svg' => 'image/svg+xml', 'png' => 'image/png', 'eps' => 'application/postscript'];
+        $contentType = $contentTypes[$format] ?? 'image/svg+xml';
 
         return response($qrCode)
             ->header('Content-Type', $contentType)
